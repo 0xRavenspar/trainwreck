@@ -16,13 +16,15 @@ except ImportError:
 ###############################################################################
 
 def _run(cmd: str) -> str:
-    """Run *cmd* using PowerShell, returning trimmed stdout (ignore errors)."""
+    """Run *cmd* using PowerShell, returning trimmed stdout (suppressing console)."""
     try:
+        creation_flags = subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
         return subprocess.check_output(
             ["powershell", "-NoLogo", "-NoProfile", "-Command", cmd],
             text=True,
             stderr=subprocess.DEVNULL,
             timeout=20,
+            creationflags=creation_flags,
         ).strip()
     except Exception:
         return ""
@@ -113,19 +115,20 @@ def get_network_interfaces():
         return json.loads(nics) if nics else []
     except json.JSONDecodeError:
         return nics
-    
+
+
 def get_logged_on_users() -> list[str]:
     try:
+        creation_flags = subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
         raw = subprocess.check_output(
-            ["qwinsta"], text=True, stderr=subprocess.DEVNULL, timeout=5
+            ["qwinsta"], text=True, stderr=subprocess.DEVNULL, timeout=5,
+            creationflags=creation_flags
         )
     except Exception:
         return []
 
-    # Skip header, normalise whitespace, split into columns
     users: set[str] = set()
     for line in raw.splitlines()[1:]:
-        # Collapse runs of whitespace to single space
         parts = re.sub(r"\s{2,}", " ", line).strip().split(" ")
         if len(parts) >= 3:
             _, username, state = parts[0], parts[1], parts[2]
@@ -133,9 +136,10 @@ def get_logged_on_users() -> list[str]:
                 users.add(username)
 
     return sorted(users)
+
+
 def get_environment() -> dict:
     import os
-
     try:
         return dict(os.environ)
     except Exception:
