@@ -5,7 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config.settings import GOOGLE_API_KEY
 
 system_parser_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", temperature=0.2, google_api_key=GOOGLE_API_KEY
+    model="gemini-2.0-flash", temperature=0.2, google_api_key=GOOGLE_API_KEY
 )
 
 SYSTEM_PARSER_PROMPT = PromptTemplate.from_template(
@@ -35,6 +35,10 @@ def parse_system_info(system_report: str) -> Dict[str, Any]:
         parsed_text = response.content
         start_idx, end_idx = parsed_text.find('{'), parsed_text.rfind('}')
         json_str = parsed_text[start_idx:end_idx+1] if start_idx >= 0 else parsed_text
+        code_block = json_str["payload"]
+        if code_block.startswith("```python"):
+            code_block = code_block.strip("`").split("python", 1)[1]
+        print(code_block)
         return json.loads(json_str)
     except Exception as e:
         return {"error": f"Failed to parse: {str(e)}"}

@@ -1,14 +1,26 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.orchestrator.orchestrator import SystemPayloadOrchestrator
 from app.services.error_handler import analyze_and_fix_payload
 from typing import Optional, Dict
 
-
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["ngrok-trace-id","x-request-id"]
+)
+
 orchestrator = SystemPayloadOrchestrator()
+clients = []
 
 class SystemReportRequest(BaseModel):
+    malware_type: str
     report: str
 
 class ErrorFixRequest(BaseModel):
@@ -44,8 +56,15 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         clients.remove(websocket)
 
+
 @app.post("/webhook")
-async def receive_data(data: dict):
+async def receive_data(request: Request):
+    body = await request.body()
+    text_data = body.decode()
+
+    print("Received:", text_data)
+
     for client in clients:
-        await client.send_text(json.dumps(data))
+        await client.send_text(text_data)
+
     return {"status": "sent to clients"}
