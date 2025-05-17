@@ -1,0 +1,5 @@
+keystrokes.log
+keystrokes.txt
+venv/
+output/
+__pycache__/
