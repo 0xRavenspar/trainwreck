@@ -5,6 +5,7 @@ from app.orchestrator.orchestrator import SystemPayloadOrchestrator
 from app.services.error_handler import analyze_and_fix_payload
 from typing import Optional, Dict
 
+
 app = FastAPI()
 
 app.add_middleware(
@@ -18,6 +19,7 @@ app.add_middleware(
 
 orchestrator = SystemPayloadOrchestrator()
 clients = []
+latest_data = None 
 
 class SystemReportRequest(BaseModel):
     malware_type: str
@@ -56,7 +58,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         clients.remove(websocket)
 
-
 @app.post("/webhook")
 async def receive_data(request: Request):
     body = await request.body()
@@ -64,7 +65,16 @@ async def receive_data(request: Request):
 
     print("Received:", text_data)
 
+    global latest_data
+    latest_data = text_data  # store for frontend polling
+
     for client in clients:
         await client.send_text(text_data)
 
     return {"status": "sent to clients"}
+
+@app.get("/latest-data")
+def get_latest_data():
+    if latest_data is None:
+        return {"status": "no data yet"}
+    return latest_data
