@@ -33,7 +33,7 @@ class ErrorFixRequest(BaseModel):
 @app.post("/generate-payload")
 def generate_payload_endpoint(payload: SystemReportRequest):
     try:
-        return orchestrator.process(payload.report)
+        return orchestrator.process(payload.report, payload.malware_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -77,4 +77,4 @@ async def receive_data(request: Request):
 def get_latest_data():
     if latest_data is None:
         return {"status": "no data yet"}
-    return latest_data
+    return {"data":latest_data}
